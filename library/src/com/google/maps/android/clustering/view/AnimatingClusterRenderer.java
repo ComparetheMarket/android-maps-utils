@@ -71,7 +71,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * The default view for a ClusterManager. Markers are animated in and out of clusters.
  */
-public class OldClusterRenderer<T extends ClusterItem> implements ClusterRenderer<T> {
+public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterRenderer<T> {
     private static final boolean SHOULD_ANIMATE = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB;
     private final GoogleMap mMap;
     private final IconGenerator mIconGenerator;
@@ -126,7 +126,7 @@ public class OldClusterRenderer<T extends ClusterItem> implements ClusterRendere
     private ClusterManager.OnClusterItemClickListener<T> mItemClickListener;
     private ClusterManager.OnClusterItemInfoWindowClickListener<T> mItemInfoWindowClickListener;
 
-    public OldClusterRenderer(Context context, GoogleMap map, ClusterManager<T> clusterManager) {
+    public AnimatingClusterRenderer(Context context, GoogleMap map, ClusterManager<T> clusterManager) {
         mMap = map;
         mAnimate = true;
         mDensity = context.getResources().getDisplayMetrics().density;
@@ -311,7 +311,7 @@ public class OldClusterRenderer<T extends ClusterItem> implements ClusterRendere
     }
 
     /**
-     * Transforms the current view (represented by DefaultClusterRenderer.mClusters and DefaultClusterRenderer.mZoom) to a
+     * Transforms the current view (represented by FastClusterRenderer.mClusters and FastClusterRenderer.mZoom) to a
      * new zoom level and set of clusters.
      * <p/>
      * This must be run off the UI thread. Work is coordinated in the RenderTask, then queued up to
@@ -359,7 +359,7 @@ public class OldClusterRenderer<T extends ClusterItem> implements ClusterRendere
 
         @SuppressLint("NewApi")
         public void run() {
-            if (clusters.equals(OldClusterRenderer.this.mClusters)) {
+            if (clusters.equals(AnimatingClusterRenderer.this.mClusters)) {
                 mCallback.run();
                 return;
             }
@@ -386,9 +386,9 @@ public class OldClusterRenderer<T extends ClusterItem> implements ClusterRendere
             // Find all of the existing clusters that are on-screen. These are candidates for
             // markers to animate from.
             List<Point> existingClustersOnScreen = null;
-            if (OldClusterRenderer.this.mClusters != null && SHOULD_ANIMATE && mAnimate) {
+            if (AnimatingClusterRenderer.this.mClusters != null && SHOULD_ANIMATE && mAnimate) {
                 existingClustersOnScreen = new ArrayList<Point>();
-                for (Cluster<T> c : OldClusterRenderer.this.mClusters) {
+                for (Cluster<T> c : AnimatingClusterRenderer.this.mClusters) {
                     if (shouldRenderAsCluster(c) && visibleBounds.contains(c.getPosition())) {
                         Point point = mSphericalMercatorProjection.toPoint(c.getPosition());
                         existingClustersOnScreen.add(point);
@@ -457,7 +457,7 @@ public class OldClusterRenderer<T extends ClusterItem> implements ClusterRendere
             markerModifier.waitUntilFree();
 
             mMarkers = newMarkers;
-            OldClusterRenderer.this.mClusters = clusters;
+            AnimatingClusterRenderer.this.mClusters = clusters;
             mZoom = zoom;
 
             mCallback.run();

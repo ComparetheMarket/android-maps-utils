@@ -24,7 +24,7 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.algo.NonHierarchicalViewBasedAlgorithm;
-import com.google.maps.android.clustering.view.OldClusterRenderer;
+import com.google.maps.android.clustering.view.AnimatingClusterRenderer;
 import com.google.maps.android.utils.demo.model.MyItem;
 
 import org.json.JSONException;
@@ -46,7 +46,7 @@ public class VisibleClusteringDemoOldActivity extends BaseDemoActivity {
         mClusterManager = new ClusterManager<MyItem>(this, map);
         mClusterManager.setAlgorithm(new NonHierarchicalViewBasedAlgorithm<MyItem>(
                 metrics.widthPixels, metrics.heightPixels));
-        OldClusterRenderer<MyItem> renderer = new OldClusterRenderer<>(this, map, mClusterManager);
+        AnimatingClusterRenderer<MyItem> renderer = new AnimatingClusterRenderer<>(this, map, mClusterManager);
         renderer.setAnimation(false);
         mClusterManager.setRenderer(renderer);
 

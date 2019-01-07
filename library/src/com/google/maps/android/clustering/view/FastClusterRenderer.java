@@ -61,7 +61,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * The default view for a ClusterManager.
  */
-public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRenderer<T> {
+public class FastClusterRenderer<T extends ClusterItem> implements ClusterRenderer<T> {
     private final GoogleMap mMap;
     private final IconGenerator mIconGenerator;
     private final ClusterManager<T> mClusterManager;
@@ -102,11 +102,6 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
     private Map<Marker, Cluster<T>> mMarkerToCluster = new HashMap<Marker, Cluster<T>>();
     private Map<Cluster<T>, Marker> mClusterToMarker = new HashMap<Cluster<T>, Marker>();
 
-    /**
-     * The target zoom level for the current set of clusters.
-     */
-    private float mZoom;
-
     private final ViewModifier mViewModifier = new ViewModifier();
 
     private ClusterManager.OnClusterClickListener<T> mClickListener;
@@ -114,7 +109,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
     private ClusterManager.OnClusterItemClickListener<T> mItemClickListener;
     private ClusterManager.OnClusterItemInfoWindowClickListener<T> mItemInfoWindowClickListener;
 
-    public DefaultClusterRenderer(Context context, GoogleMap map, ClusterManager<T> clusterManager) {
+    public FastClusterRenderer(Context context, GoogleMap map, ClusterManager<T> clusterManager) {
         mMap = map;
         mDensity = context.getResources().getDisplayMetrics().density;
         mIconGenerator = new IconGenerator(context);
@@ -290,7 +285,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
     }
 
     /**
-     * Transforms the current view (represented by DefaultClusterRenderer.mClusters and DefaultClusterRenderer.mZoom) to a
+     * Transforms the current view (represented by FastClusterRenderer.mClusters and FastClusterRenderer.mZoom) to a
      * new zoom level and set of clusters.
      * <p/>
      * This must be run off the UI thread. Work is coordinated in the RenderTask, then queued up to
@@ -334,7 +329,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
 
         @SuppressLint("NewApi")
         public void run() {
-            if (clusters.equals(DefaultClusterRenderer.this.mClusters)) {
+            if (clusters.equals(FastClusterRenderer.this.mClusters)) {
                 mCallback.run();
                 return;
             }
@@ -399,8 +394,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             markerModifier.waitUntilFree();
 
             mMarkers = newMarkers;
-            DefaultClusterRenderer.this.mClusters = clusters;
-            mZoom = zoom;
+            FastClusterRenderer.this.mClusters = clusters;
 
             mCallback.run();
         }
