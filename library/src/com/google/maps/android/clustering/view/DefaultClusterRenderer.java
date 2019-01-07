@@ -371,12 +371,19 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             markersToRemove.removeAll(newMarkers);
 
             // Remove the old markers.
-            List<OnScreenPair<Marker>> toRemove = new ArrayList<>();
+            List<Marker> onScreenToRemove = new ArrayList<>();
+            List<Marker> offScreenToRemove = new ArrayList<>();
             for (final MarkerWithPosition marker : markersToRemove) {
-                toRemove.add(new OnScreenPair<>(visibleBounds.contains(marker.position), marker.marker));
+                boolean onScreen = visibleBounds.contains(marker.position);
+                if (onScreen) {
+                    onScreenToRemove.add(marker.marker);
+                } else {
+                    offScreenToRemove.add(marker.marker);
+                }
             }
 
-            markerModifier.remove(toRemove);
+            markerModifier.remove(true, onScreenToRemove);
+            markerModifier.remove(false, offScreenToRemove);
 
             markerModifier.waitUntilFree();
 
@@ -385,16 +392,6 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             mZoom = zoom;
 
             mCallback.run();
-        }
-    }
-
-    private static class OnScreenPair<T> {
-        private final boolean isOnScreen;
-        private final T content;
-
-        OnScreenPair(boolean isOnScreen, T content) {
-            this.isOnScreen = isOnScreen;
-            this.content = content;
         }
     }
 
@@ -440,7 +437,8 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
 
         private Queue<CreateMarkerTask> mCreateMarkerTasks = new LinkedList<CreateMarkerTask>();
         private Queue<CreateMarkerTask> mOnScreenCreateMarkerTasks = new LinkedList<CreateMarkerTask>();
-        private Queue<List<OnScreenPair<Marker>>> mRemoveMarkerTasks = new LinkedList<>();
+        private Queue<List<Marker>> mRemoveMarkersTasks = new LinkedList<>();
+        private Queue<List<Marker>> mOnScreenRemoveMarkersTasks = new LinkedList<>();
 
         /**
          * Whether the idle listener has been added to the UI thread's MessageQueue.
@@ -467,10 +465,20 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             lock.unlock();
         }
 
-        public void remove(List<OnScreenPair<Marker>> toRemove) {
+        /**
+         * Removes a markerWithPosition some time in the future.
+         *
+         * @param priority whether this operation should have priority.
+         * @param markers  the markers to remove.
+         */
+        public void remove(boolean priority, List<Marker> markers) {
             lock.lock();
             sendEmptyMessage(BLANK);
-            mRemoveMarkerTasks.add(toRemove);
+            if (priority) {
+                mOnScreenRemoveMarkersTasks.add(markers);
+            } else {
+                mRemoveMarkersTasks.add(markers);
+            }
             lock.unlock();
         }
 
@@ -512,24 +520,25 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
          * Perform the next task. Prioritise any on-screen work.
          */
         private void performNextTask() {
-            if (!mRemoveMarkerTasks.isEmpty()) {
-                List<OnScreenPair<Marker>> poll = mRemoveMarkerTasks.poll();
-                for (OnScreenPair<Marker> value : poll) {
-                    removeMarker(value.content);
-                }
+            if (!mOnScreenRemoveMarkersTasks.isEmpty()) {
+                removeMarkers(mOnScreenRemoveMarkersTasks.poll());
             } else if (!mOnScreenCreateMarkerTasks.isEmpty()) {
                 mOnScreenCreateMarkerTasks.poll().perform();
             } else if (!mCreateMarkerTasks.isEmpty()) {
                 mCreateMarkerTasks.poll().perform();
+            } else if (!mRemoveMarkersTasks.isEmpty()) {
+                removeMarkers(mRemoveMarkersTasks.poll());
             }
         }
 
-        private void removeMarker(Marker m) {
-            Cluster<T> cluster = mMarkerToCluster.get(m);
-            mClusterToMarker.remove(cluster);
-            mMarkerCache.remove(m);
-            mMarkerToCluster.remove(m);
-            mClusterManager.getMarkerManager().remove(m);
+        private void removeMarkers(List<Marker> markers) {
+            for (Marker m : markers) {
+                Cluster<T> cluster = mMarkerToCluster.get(m);
+                mClusterToMarker.remove(cluster);
+                mMarkerCache.remove(m);
+                mMarkerToCluster.remove(m);
+                mClusterManager.getMarkerManager().remove(m);
+            }
         }
 
         /**
@@ -539,7 +548,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             try {
                 lock.lock();
                 return !(mCreateMarkerTasks.isEmpty() && mOnScreenCreateMarkerTasks.isEmpty() &&
-                        mRemoveMarkerTasks.isEmpty()
+                        mOnScreenRemoveMarkersTasks.isEmpty() && mRemoveMarkersTasks.isEmpty()
                 );
             } finally {
                 lock.unlock();
