@@ -358,10 +358,21 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             // Create the new markers.
             final Set<MarkerWithPosition> newMarkers = Collections.newSetFromMap(
                     new ConcurrentHashMap<MarkerWithPosition, Boolean>());
+
+            List<CreateMarkersTask> onScreenToAdd = new ArrayList<>();
+            List<CreateMarkersTask> offScreenToAdd = new ArrayList<>();
             for (Cluster<T> c : clusters) {
                 boolean onScreen = visibleBounds.contains(c.getPosition());
-                markerModifier.add(onScreen, new CreateMarkerTask(c, newMarkers));
+                CreateMarkersTask markersTask = new CreateMarkersTask(c, newMarkers);
+                if (onScreen) {
+                    onScreenToAdd.add(markersTask);
+                } else {
+                    offScreenToAdd.add(markersTask);
+                }
             }
+
+            markerModifier.add(true, onScreenToAdd);
+            markerModifier.add(false, offScreenToAdd);
 
             // Wait for all markers to be added.
             markerModifier.waitUntilFree();
@@ -435,8 +446,8 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
         private final Lock lock = new ReentrantLock();
         private final Condition busyCondition = lock.newCondition();
 
-        private Queue<CreateMarkerTask> mCreateMarkerTasks = new LinkedList<CreateMarkerTask>();
-        private Queue<CreateMarkerTask> mOnScreenCreateMarkerTasks = new LinkedList<CreateMarkerTask>();
+        private Queue<List<CreateMarkersTask>> mCreateMarkersTasks = new LinkedList<>();
+        private Queue<List<CreateMarkersTask>> mOnScreenCreateMarkersTasks = new LinkedList<>();
         private Queue<List<Marker>> mRemoveMarkersTasks = new LinkedList<>();
         private Queue<List<Marker>> mOnScreenRemoveMarkersTasks = new LinkedList<>();
 
@@ -454,13 +465,13 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
          *
          * @param priority whether this operation should have priority.
          */
-        public void add(boolean priority, CreateMarkerTask c) {
+        public void add(boolean priority, List<CreateMarkersTask> createMarkersTaskList) {
             lock.lock();
             sendEmptyMessage(BLANK);
             if (priority) {
-                mOnScreenCreateMarkerTasks.add(c);
+                mOnScreenCreateMarkersTasks.add(createMarkersTaskList);
             } else {
-                mCreateMarkerTasks.add(c);
+                mCreateMarkersTasks.add(createMarkersTaskList);
             }
             lock.unlock();
         }
@@ -522,12 +533,21 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
         private void performNextTask() {
             if (!mOnScreenRemoveMarkersTasks.isEmpty()) {
                 removeMarkers(mOnScreenRemoveMarkersTasks.poll());
-            } else if (!mOnScreenCreateMarkerTasks.isEmpty()) {
-                mOnScreenCreateMarkerTasks.poll().perform();
-            } else if (!mCreateMarkerTasks.isEmpty()) {
-                mCreateMarkerTasks.poll().perform();
+
+            } else if (!mOnScreenCreateMarkersTasks.isEmpty()) {
+                addMarkers(mOnScreenCreateMarkersTasks.poll());
+
+            } else if (!mCreateMarkersTasks.isEmpty()) {
+                addMarkers(mCreateMarkersTasks.poll());
+
             } else if (!mRemoveMarkersTasks.isEmpty()) {
                 removeMarkers(mRemoveMarkersTasks.poll());
+            }
+        }
+
+        private void addMarkers(List<CreateMarkersTask> createMarkersTaskList) {
+            for (CreateMarkersTask task : createMarkersTaskList) {
+                task.perform();
             }
         }
 
@@ -547,7 +567,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
         public boolean isBusy() {
             try {
                 lock.lock();
-                return !(mCreateMarkerTasks.isEmpty() && mOnScreenCreateMarkerTasks.isEmpty() &&
+                return !(mCreateMarkersTasks.isEmpty() && mOnScreenCreateMarkersTasks.isEmpty() &&
                         mOnScreenRemoveMarkersTasks.isEmpty() && mRemoveMarkersTasks.isEmpty()
                 );
             } finally {
@@ -649,7 +669,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
     /**
      * Creates markerWithPosition(s) for a particular cluster.
      */
-    private class CreateMarkerTask {
+    private class CreateMarkersTask {
         private final Cluster<T> cluster;
         private final Set<MarkerWithPosition> newMarkers;
 
@@ -657,7 +677,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
          * @param c            the cluster to render.
          * @param markersAdded a collection of markers to append any created markers.
          */
-        public CreateMarkerTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded) {
+        public CreateMarkersTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded) {
             this.cluster = c;
             this.newMarkers = markersAdded;
         }
