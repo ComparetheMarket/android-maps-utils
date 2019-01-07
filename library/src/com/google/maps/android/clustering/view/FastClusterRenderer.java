@@ -18,10 +18,8 @@ package com.google.maps.android.clustering.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.os.MessageQueue;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLngBounds;
@@ -135,97 +133,10 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
      * is performed while trying not to block the rest of the app's UI.
      */
     @SuppressLint("HandlerLeak")
-    private class MarkerModifier extends Handler implements MessageQueue.IdleHandler {
-        private static final int BLANK = 0;
-
-        private final Lock lock = new ReentrantLock();
-        private final Condition busyCondition = lock.newCondition();
-
-        private Queue<List<CreateMarkersTask>> mCreateMarkersTasks = new LinkedList<>();
-        private Queue<List<CreateMarkersTask>> mOnScreenCreateMarkersTasks = new LinkedList<>();
-        private Queue<List<Marker>> mRemoveMarkersTasks = new LinkedList<>();
-        private Queue<List<Marker>> mOnScreenRemoveMarkersTasks = new LinkedList<>();
-
-        /**
-         * Whether the idle listener has been added to the UI thread's MessageQueue.
-         */
-        private boolean mListenerAdded;
-
-        private MarkerModifier() {
-            super(Looper.getMainLooper());
-        }
-
-        /**
-         * Creates markers for a cluster some time in the future.
-         *
-         * @param priority whether this operation should have priority.
-         */
-        public void add(boolean priority, List<CreateMarkersTask> createMarkersTaskList) {
-            lock.lock();
-            sendEmptyMessage(BLANK);
-            if (priority) {
-                mOnScreenCreateMarkersTasks.add(createMarkersTaskList);
-            } else {
-                mCreateMarkersTasks.add(createMarkersTaskList);
-            }
-            lock.unlock();
-        }
-
-        /**
-         * Removes a markerWithPosition some time in the future.
-         *
-         * @param priority whether this operation should have priority.
-         * @param markers  the markers to remove.
-         */
-        public void remove(boolean priority, List<Marker> markers) {
-            lock.lock();
-            sendEmptyMessage(BLANK);
-            if (priority) {
-                mOnScreenRemoveMarkersTasks.add(markers);
-            } else {
-                mRemoveMarkersTasks.add(markers);
-            }
-            lock.unlock();
-        }
+    private class MarkerModifier extends BaseMarkerModifier<List<CreateMarkersTask>, List<Marker>> {
 
         @Override
-        public void handleMessage(Message msg) {
-            if (!mListenerAdded) {
-                Looper.myQueue().addIdleHandler(this);
-                mListenerAdded = true;
-            }
-            removeMessages(BLANK);
-
-            lock.lock();
-            try {
-
-                // Perform up to 10 tasks at once.
-                // Consider only performing 10 remove tasks, not adds and animations.
-                // Removes are relatively slow and are much better when batched.
-                for (int i = 0; i < 10; i++) {
-                    performNextTask();
-                }
-
-                if (!isBusy()) {
-                    mListenerAdded = false;
-                    Looper.myQueue().removeIdleHandler(this);
-                    // Signal any other threads that are waiting.
-                    busyCondition.signalAll();
-                } else {
-                    // Sometimes the idle queue may not be called - schedule up some work regardless
-                    // of whether the UI thread is busy or not.
-                    // TODO: try to remove this.
-                    sendEmptyMessageDelayed(BLANK, 10);
-                }
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        /**
-         * Perform the next task. Prioritise any on-screen work.
-         */
-        private void performNextTask() {
+        void performNextTask() {
             if (!mOnScreenRemoveMarkersTasks.isEmpty()) {
                 removeMarkers(mOnScreenRemoveMarkersTasks.poll());
 
@@ -254,49 +165,6 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
                 mMarkerToCluster.remove(m);
                 mClusterManager.getMarkerManager().remove(m);
             }
-        }
-
-        /**
-         * @return true if there is still work to be processed.
-         */
-        public boolean isBusy() {
-            try {
-                lock.lock();
-                return !(mCreateMarkersTasks.isEmpty() && mOnScreenCreateMarkersTasks.isEmpty() &&
-                        mOnScreenRemoveMarkersTasks.isEmpty() && mRemoveMarkersTasks.isEmpty()
-                );
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        /**
-         * Blocks the calling thread until all work has been processed.
-         */
-        public void waitUntilFree() {
-            while (isBusy()) {
-                // Sometimes the idle queue may not be called - schedule up some work regardless
-                // of whether the UI thread is busy or not.
-                // TODO: try to remove this.
-                sendEmptyMessage(BLANK);
-                lock.lock();
-                try {
-                    if (isBusy()) {
-                        busyCondition.await();
-                    }
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    lock.unlock();
-                }
-            }
-        }
-
-        @Override
-        public boolean queueIdle() {
-            // When the UI is not busy, schedule some work.
-            sendEmptyMessage(BLANK);
-            return true;
         }
     }
 
