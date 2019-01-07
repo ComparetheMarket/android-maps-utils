@@ -45,9 +45,11 @@ import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.ui.IconGenerator;
 import com.google.maps.android.ui.SquareTextView;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -369,10 +371,12 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             markersToRemove.removeAll(newMarkers);
 
             // Remove the old markers.
+            List<OnScreenPair<Marker>> toRemove = new ArrayList<>();
             for (final MarkerWithPosition marker : markersToRemove) {
-                boolean onScreen = visibleBounds.contains(marker.position);
-                markerModifier.remove(onScreen, marker.marker);
+                toRemove.add(new OnScreenPair<>(visibleBounds.contains(marker.position), marker.marker));
             }
+
+            markerModifier.remove(toRemove);
 
             markerModifier.waitUntilFree();
 
@@ -381,6 +385,16 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             mZoom = zoom;
 
             mCallback.run();
+        }
+    }
+
+    private static class OnScreenPair<T> {
+        private final boolean isOnScreen;
+        private final T content;
+
+        OnScreenPair(boolean isOnScreen, T content) {
+            this.isOnScreen = isOnScreen;
+            this.content = content;
         }
     }
 
@@ -426,8 +440,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
 
         private Queue<CreateMarkerTask> mCreateMarkerTasks = new LinkedList<CreateMarkerTask>();
         private Queue<CreateMarkerTask> mOnScreenCreateMarkerTasks = new LinkedList<CreateMarkerTask>();
-        private Queue<Marker> mRemoveMarkerTasks = new LinkedList<Marker>();
-        private Queue<Marker> mOnScreenRemoveMarkerTasks = new LinkedList<Marker>();
+        private Queue<List<OnScreenPair<Marker>>> mRemoveMarkerTasks = new LinkedList<>();
 
         /**
          * Whether the idle listener has been added to the UI thread's MessageQueue.
@@ -454,20 +467,10 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             lock.unlock();
         }
 
-        /**
-         * Removes a markerWithPosition some time in the future.
-         *
-         * @param priority whether this operation should have priority.
-         * @param m        the markerWithPosition to remove.
-         */
-        public void remove(boolean priority, Marker m) {
+        public void remove(List<OnScreenPair<Marker>> toRemove) {
             lock.lock();
             sendEmptyMessage(BLANK);
-            if (priority) {
-                mOnScreenRemoveMarkerTasks.add(m);
-            } else {
-                mRemoveMarkerTasks.add(m);
-            }
+            mRemoveMarkerTasks.add(toRemove);
             lock.unlock();
         }
 
@@ -509,14 +512,15 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
          * Perform the next task. Prioritise any on-screen work.
          */
         private void performNextTask() {
-            if (!mOnScreenRemoveMarkerTasks.isEmpty()) {
-                removeMarker(mOnScreenRemoveMarkerTasks.poll());
+            if (!mRemoveMarkerTasks.isEmpty()) {
+                List<OnScreenPair<Marker>> poll = mRemoveMarkerTasks.poll();
+                for (OnScreenPair<Marker> value : poll) {
+                    removeMarker(value.content);
+                }
             } else if (!mOnScreenCreateMarkerTasks.isEmpty()) {
                 mOnScreenCreateMarkerTasks.poll().perform();
             } else if (!mCreateMarkerTasks.isEmpty()) {
                 mCreateMarkerTasks.poll().perform();
-            } else if (!mRemoveMarkerTasks.isEmpty()) {
-                removeMarker(mRemoveMarkerTasks.poll());
             }
         }
 
@@ -535,7 +539,7 @@ public class DefaultClusterRenderer<T extends ClusterItem> implements ClusterRen
             try {
                 lock.lock();
                 return !(mCreateMarkerTasks.isEmpty() && mOnScreenCreateMarkerTasks.isEmpty() &&
-                        mOnScreenRemoveMarkerTasks.isEmpty() && mRemoveMarkerTasks.isEmpty()
+                        mRemoveMarkerTasks.isEmpty()
                 );
             } finally {
                 lock.unlock();
