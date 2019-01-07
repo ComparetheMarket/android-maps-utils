@@ -39,6 +39,8 @@ public class MainActivity extends Activity implements View.OnClickListener {
         addDemo("Clustering: Custom Look", CustomMarkerClusteringDemoActivity.class);
         addDemo("Clustering: 2K markers", BigClusteringDemoActivity.class);
         addDemo("Clustering: 20k only visible markers", VisibleClusteringDemoActivity.class);
+        addDemo("Clustering: 2K markers (old)", BigClusteringDemoOldActivity.class);
+        addDemo("Clustering: 20k only visible markers (old)", VisibleClusteringDemoOldActivity.class);
         addDemo("PolyUtil.decode", PolyDecodeDemoActivity.class);
         addDemo("PolyUtil.simplify", PolySimplifyDemoActivity.class);
         addDemo("IconGenerator", IconGeneratorDemoActivity.class);
