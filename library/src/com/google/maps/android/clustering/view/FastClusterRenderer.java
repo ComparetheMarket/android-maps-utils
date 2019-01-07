@@ -24,8 +24,6 @@ import android.os.Message;
 import android.os.MessageQueue;
 
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.Projection;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -74,46 +72,16 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
      * When zooming in, markers are created out from the nearest existing cluster. When zooming
      * out, existing clusters are moved into to the nearest new cluster.
      */
-    private class FastRenderTask implements RenderTask {
-        final Set<? extends Cluster<T>> clusters;
-        private Runnable mCallback;
-        private Projection mProjection;
+    private class FastRenderTask extends BaseRenderTask<T> {
 
         private FastRenderTask(Set<? extends Cluster<T>> clusters) {
-            this.clusters = clusters;
+            super(FastClusterRenderer.this, clusters);
         }
 
         @Override
-        public void setCallback(Runnable callback) {
-            mCallback = callback;
-        }
-
-        @Override
-        public void setProjection(Projection projection) {
-            this.mProjection = projection;
-        }
-
-        @SuppressLint("NewApi")
-        @Override
-        public void run() {
-            if (clusters.equals(FastClusterRenderer.this.mClusters)) {
-                mCallback.run();
-                return;
-            }
-
+        protected Set<MarkerWithPosition> executeWork(LatLngBounds visibleBounds) {
             final MarkerModifier markerModifier = new MarkerModifier();
-
-            final Set<MarkerWithPosition> markersToRemove = mMarkers;
-            // Prevent crashes: https://issuetracker.google.com/issues/35827242
-            LatLngBounds visibleBounds;
-            try {
-                visibleBounds = mProjection.getVisibleRegion().latLngBounds;
-            } catch (Exception e) {
-                e.printStackTrace();
-                visibleBounds = LatLngBounds.builder()
-                        .include(new LatLng(0, 0))
-                        .build();
-            }
+            final Set<BaseClusterRenderer.MarkerWithPosition> markersToRemove = mMarkers;
 
             // Create the new markers.
             final Set<MarkerWithPosition> newMarkers = Collections.newSetFromMap(
@@ -158,10 +126,7 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
 
             markerModifier.waitUntilFree();
 
-            mMarkers = newMarkers;
-            FastClusterRenderer.this.mClusters = clusters;
-
-            mCallback.run();
+            return newMarkers;
         }
     }
 

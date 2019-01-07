@@ -44,8 +44,8 @@ public abstract class BaseClusterRenderer<T extends ClusterItem> implements Clus
     /**
      * Markers that are currently on the map.
      */
-    Set<AnimatingClusterRenderer.MarkerWithPosition> mMarkers = Collections.newSetFromMap(
-            new ConcurrentHashMap<AnimatingClusterRenderer.MarkerWithPosition, Boolean>());
+    Set<MarkerWithPosition> mMarkers = Collections.newSetFromMap(
+            new ConcurrentHashMap<MarkerWithPosition, Boolean>());
 
     /**
      * Icons for each bucket.

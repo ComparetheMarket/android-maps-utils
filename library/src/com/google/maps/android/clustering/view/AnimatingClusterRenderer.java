@@ -92,37 +92,23 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
      * When zooming in, markers are animated out from the nearest existing cluster. When zooming
      * out, existing clusters are animated to the nearest new cluster.
      */
-    private class AnimatingRenderTask implements RenderTask {
-        final Set<? extends Cluster<T>> clusters;
-        private Runnable mCallback;
-        private Projection mProjection;
+    private class AnimatingRenderTask extends BaseRenderTask<T> {
         private SphericalMercatorProjection mSphericalMercatorProjection;
         private float mMapZoom;
 
         private AnimatingRenderTask(Set<? extends Cluster<T>> clusters) {
-            this.clusters = clusters;
-        }
-
-        @Override
-        public void setCallback(Runnable callback) {
-            mCallback = callback;
+            super(AnimatingClusterRenderer.this, clusters);
         }
 
         @Override
         public void setProjection(Projection projection) {
-            this.mProjection = projection;
+            super.setProjection(projection);
             this.mMapZoom = mMap.getCameraPosition().zoom;
             this.mSphericalMercatorProjection = new SphericalMercatorProjection(256 * Math.pow(2, Math.min(mMapZoom, mZoom)));
         }
 
-        @SuppressLint("NewApi")
         @Override
-        public void run() {
-            if (clusters.equals(AnimatingClusterRenderer.this.mClusters)) {
-                mCallback.run();
-                return;
-            }
-
+        protected Set<MarkerWithPosition> executeWork(LatLngBounds visibleBounds) {
             final MarkerModifier markerModifier = new MarkerModifier();
 
             final float zoom = mMapZoom;
@@ -130,17 +116,6 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
             final float zoomDelta = zoom - mZoom;
 
             final Set<MarkerWithPosition> markersToRemove = mMarkers;
-            // Prevent crashes: https://issuetracker.google.com/issues/35827242
-            LatLngBounds visibleBounds;
-            try {
-                visibleBounds = mProjection.getVisibleRegion().latLngBounds;
-            } catch (Exception e) {
-                e.printStackTrace();
-                visibleBounds = LatLngBounds.builder()
-                        .include(new LatLng(0, 0))
-                        .build();
-            }
-            // TODO: Add some padding, so that markers can animate in from off-screen.
 
             // Find all of the existing clusters that are on-screen. These are candidates for
             // markers to animate from.
@@ -215,11 +190,9 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
 
             markerModifier.waitUntilFree();
 
-            mMarkers = newMarkers;
-            AnimatingClusterRenderer.this.mClusters = clusters;
             mZoom = zoom;
 
-            mCallback.run();
+            return newMarkers;
         }
     }
 
