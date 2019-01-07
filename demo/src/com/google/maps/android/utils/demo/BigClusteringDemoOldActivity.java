@@ -39,9 +39,7 @@ public class BigClusteringDemoOldActivity extends BaseDemoActivity {
 
         GoogleMap map = getMap();
         mClusterManager = new ClusterManager<MyItem>(this, map);
-        AnimatingClusterRenderer<MyItem> renderer = new AnimatingClusterRenderer<>(this, map, mClusterManager);
-        renderer.setAnimation(false);
-        mClusterManager.setRenderer(renderer);
+        mClusterManager.setRenderer(new AnimatingClusterRenderer<>(this, map, mClusterManager));
 
         getMap().setOnCameraIdleListener(mClusterManager);
         try {

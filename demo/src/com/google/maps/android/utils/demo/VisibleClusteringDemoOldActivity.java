@@ -46,9 +46,7 @@ public class VisibleClusteringDemoOldActivity extends BaseDemoActivity {
         mClusterManager = new ClusterManager<MyItem>(this, map);
         mClusterManager.setAlgorithm(new NonHierarchicalViewBasedAlgorithm<MyItem>(
                 metrics.widthPixels, metrics.heightPixels));
-        AnimatingClusterRenderer<MyItem> renderer = new AnimatingClusterRenderer<>(this, map, mClusterManager);
-        renderer.setAnimation(false);
-        mClusterManager.setRenderer(renderer);
+        mClusterManager.setRenderer(new AnimatingClusterRenderer<>(this, map, mClusterManager));
 
         map.setOnCameraIdleListener(mClusterManager);
 

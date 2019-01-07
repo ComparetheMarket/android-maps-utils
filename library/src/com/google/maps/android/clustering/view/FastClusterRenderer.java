@@ -425,10 +425,6 @@ public class FastClusterRenderer<T extends ClusterItem> implements ClusterRender
         mItemInfoWindowClickListener = listener;
     }
 
-    @Override
-    public void setAnimation(boolean animate) {
-    }
-
     /**
      * Handles all markerWithPosition manipulations on the map. Work (such as adding, or removing a markerWithPosition)
      * is performed while trying not to block the rest of the app's UI.

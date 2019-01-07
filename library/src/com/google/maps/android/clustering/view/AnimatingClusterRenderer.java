@@ -77,7 +77,6 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
     private final IconGenerator mIconGenerator;
     private final ClusterManager<T> mClusterManager;
     private final float mDensity;
-    private boolean mAnimate;
 
     private static final int[] BUCKETS = {10, 20, 50, 100, 200, 500, 1000};
     private ShapeDrawable mColoredCircleBackground;
@@ -128,7 +127,6 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
 
     public AnimatingClusterRenderer(Context context, GoogleMap map, ClusterManager<T> clusterManager) {
         mMap = map;
-        mAnimate = true;
         mDensity = context.getResources().getDisplayMetrics().density;
         mIconGenerator = new IconGenerator(context);
         mIconGenerator.setContentView(makeSquareTextView(context));
@@ -386,7 +384,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
             // Find all of the existing clusters that are on-screen. These are candidates for
             // markers to animate from.
             List<Point> existingClustersOnScreen = null;
-            if (AnimatingClusterRenderer.this.mClusters != null && SHOULD_ANIMATE && mAnimate) {
+            if (AnimatingClusterRenderer.this.mClusters != null && SHOULD_ANIMATE) {
                 existingClustersOnScreen = new ArrayList<Point>();
                 for (Cluster<T> c : AnimatingClusterRenderer.this.mClusters) {
                     if (shouldRenderAsCluster(c) && visibleBounds.contains(c.getPosition())) {
@@ -401,7 +399,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
                     new ConcurrentHashMap<MarkerWithPosition, Boolean>());
             for (Cluster<T> c : clusters) {
                 boolean onScreen = visibleBounds.contains(c.getPosition());
-                if (zoomingIn && onScreen && SHOULD_ANIMATE && mAnimate) {
+                if (zoomingIn && onScreen && SHOULD_ANIMATE) {
                     Point point = mSphericalMercatorProjection.toPoint(c.getPosition());
                     Point closest = findClosestCluster(existingClustersOnScreen, point);
                     if (closest != null) {
@@ -425,7 +423,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
             // Find all of the new clusters that were added on-screen. These are candidates for
             // markers to animate from.
             List<Point> newClustersOnScreen = null;
-            if (SHOULD_ANIMATE && mAnimate) {
+            if (SHOULD_ANIMATE) {
                 newClustersOnScreen = new ArrayList<Point>();
                 for (Cluster<T> c : clusters) {
                     if (shouldRenderAsCluster(c) && visibleBounds.contains(c.getPosition())) {
@@ -440,7 +438,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
                 boolean onScreen = visibleBounds.contains(marker.position);
                 // Don't animate when zooming out more than 3 zoom levels.
                 // TODO: drop animation based on speed of device & number of markers to animate.
-                if (!zoomingIn && zoomDelta > -3 && onScreen && SHOULD_ANIMATE && mAnimate) {
+                if (!zoomingIn && zoomDelta > -3 && onScreen && SHOULD_ANIMATE) {
                     final Point point = mSphericalMercatorProjection.toPoint(marker.position);
                     final Point closest = findClosestCluster(newClustersOnScreen, point);
                     if (closest != null) {
@@ -489,17 +487,14 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
         mItemInfoWindowClickListener = listener;
     }
 
-    @Override
-    public void setAnimation(boolean animate) {
-        mAnimate = animate;
-    }
-
     private static double distanceSquared(Point a, Point b) {
         return (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
     }
 
     private Point findClosestCluster(List<Point> markers, Point point) {
-        if (markers == null || markers.isEmpty()) return null;
+        if (markers == null || markers.isEmpty()) {
+            return null;
+        }
 
         int maxDistance = mClusterManager.getAlgorithm().getMaxDistanceBetweenClusteredItems();
         double minDistSquared = maxDistance * maxDistance;
@@ -772,15 +767,17 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
 
     /**
      * Get the marker from a ClusterItem
+     *
      * @param clusterItem ClusterItem which you will obtain its marker
      * @return a marker from a ClusterItem or null if it does not exists
      */
-    public Marker getMarker(T  clusterItem) {
+    public Marker getMarker(T clusterItem) {
         return mMarkerCache.get(clusterItem);
     }
 
     /**
      * Get the ClusterItem from a marker
+     *
      * @param marker which you will obtain its ClusterItem
      * @return a ClusterItem from a marker or null if it does not exists
      */
@@ -790,15 +787,17 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
 
     /**
      * Get the marker from a Cluster
+     *
      * @param cluster which you will obtain its marker
      * @return a marker from a cluster or null if it does not exists
      */
-    public Marker getMarker(Cluster<T>  cluster) {
+    public Marker getMarker(Cluster<T> cluster) {
         return mClusterToMarker.get(cluster);
     }
 
     /**
      * Get the Cluster from a marker
+     *
      * @param marker which you will obtain its Cluster
      * @return a Cluster from a marker or null if it does not exists
      */
@@ -839,7 +838,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> implements ClusterR
                         } else {
                             markerOptions.position(item.getPosition());
                         }
-                        if (!(item.getTitle()== null) && !(item.getSnippet() == null)) {
+                        if (!(item.getTitle() == null) && !(item.getSnippet() == null)) {
                             markerOptions.title(item.getTitle());
                             markerOptions.snippet(item.getSnippet());
                         } else if (!(item.getSnippet() == null)) {
