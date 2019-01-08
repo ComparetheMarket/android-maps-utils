@@ -25,6 +25,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.model.MarkerWithPosition;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,7 +56,7 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
         @Override
         protected Set<MarkerWithPosition> executeWork(LatLngBounds visibleBounds) {
             final MarkerModifier markerModifier = new MarkerModifier();
-            final Set<BaseClusterRenderer.MarkerWithPosition> markersToRemove = mMarkers;
+            final Set<MarkerWithPosition> markersToRemove = mMarkers;
 
             // Create the new markers.
             final Set<MarkerWithPosition> newMarkers = Collections.newSetFromMap(
@@ -87,11 +88,11 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
             List<Marker> onScreenToRemove = new ArrayList<>();
             List<Marker> offScreenToRemove = new ArrayList<>();
             for (final MarkerWithPosition marker : markersToRemove) {
-                boolean onScreen = visibleBounds.contains(marker.position);
+                boolean onScreen = visibleBounds.contains(marker.getPosition());
                 if (onScreen) {
-                    onScreenToRemove.add(marker.marker);
+                    onScreenToRemove.add(marker.getMarker());
                 } else {
-                    offScreenToRemove.add(marker.marker);
+                    offScreenToRemove.add(marker.getMarker());
                 }
             }
 

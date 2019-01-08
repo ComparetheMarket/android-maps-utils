@@ -5,6 +5,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
+import com.google.maps.android.clustering.view.model.MarkerWithPosition;
 
 import java.util.Set;
 
@@ -70,5 +71,5 @@ public abstract class BaseRenderTask<T extends ClusterItem> implements BaseClust
         mCallback.run();
     }
 
-    protected abstract Set<BaseClusterRenderer.MarkerWithPosition> executeWork(LatLngBounds visibleBounds);
+    protected abstract Set<MarkerWithPosition> executeWork(LatLngBounds visibleBounds);
 }

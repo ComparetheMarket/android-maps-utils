@@ -16,13 +16,14 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.Projection;
 import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.R;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.model.MarkerCache;
+import com.google.maps.android.clustering.view.model.MarkerWithPosition;
 import com.google.maps.android.ui.IconGenerator;
 import com.google.maps.android.ui.SquareTextView;
 
@@ -301,7 +302,6 @@ public abstract class BaseClusterRenderer<T extends ClusterItem> implements Clus
         return mMarkerToCluster.get(marker);
     }
 
-
     /**
      * ViewModifier ensures only one re-rendering of the view occurs at a time, and schedules
      * re-rendering, which is performed by the RenderTask.
@@ -370,57 +370,4 @@ public abstract class BaseClusterRenderer<T extends ClusterItem> implements Clus
         void setProjection(Projection projection);
     }
 
-    /**
-     * A Marker and its position. Marker.getPosition() must be called from the UI thread, so this
-     * object allows lookup from other threads.
-     */
-    static class MarkerWithPosition {
-        final Marker marker;
-        LatLng position;
-
-        MarkerWithPosition(Marker marker) {
-            this.marker = marker;
-            position = marker.getPosition();
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other instanceof MarkerWithPosition) {
-                return marker.equals(((MarkerWithPosition) other).marker);
-            }
-            return false;
-        }
-
-        @Override
-        public int hashCode() {
-            return marker.hashCode();
-        }
-    }
-
-    /**
-     * A cache of markers representing individual ClusterItems.
-     */
-    static class MarkerCache<T> {
-        private Map<T, Marker> mCache = new HashMap<>();
-        private Map<Marker, T> mCacheReverse = new HashMap<>();
-
-        public Marker get(T item) {
-            return mCache.get(item);
-        }
-
-        public T get(Marker m) {
-            return mCacheReverse.get(m);
-        }
-
-        public void put(T item, Marker m) {
-            mCache.put(item, m);
-            mCacheReverse.put(m, item);
-        }
-
-        public void remove(Marker m) {
-            T item = mCacheReverse.get(m);
-            mCacheReverse.remove(m);
-            mCache.remove(item);
-        }
-    }
 }

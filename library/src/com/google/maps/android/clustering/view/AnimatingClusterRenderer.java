@@ -36,6 +36,7 @@ import com.google.maps.android.MarkerManager;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.model.MarkerWithPosition;
 import com.google.maps.android.geometry.Point;
 import com.google.maps.android.projection.SphericalMercatorProjection;
 
@@ -146,20 +147,20 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
 
             // Remove the old markers, animating them into clusters if zooming out.
             for (final MarkerWithPosition marker : markersToRemove) {
-                boolean onScreen = visibleBounds.contains(marker.position);
+                boolean onScreen = visibleBounds.contains(marker.getPosition());
                 // Don't animate when zooming out more than 3 zoom levels.
                 // TODO: drop animation based on speed of device & number of markers to animate.
                 if (!zoomingIn && zoomDelta > -3 && onScreen && SHOULD_ANIMATE) {
-                    final Point point = mSphericalMercatorProjection.toPoint(marker.position);
+                    final Point point = mSphericalMercatorProjection.toPoint(marker.getPosition());
                     final Point closest = findClosestCluster(newClustersOnScreen, point);
                     if (closest != null) {
                         LatLng animateTo = mSphericalMercatorProjection.toLatLng(closest);
-                        markerModifier.animateThenRemove(marker, marker.position, animateTo);
+                        markerModifier.animateThenRemove(marker, marker.getPosition(), animateTo);
                     } else {
-                        markerModifier.remove(true, marker.marker);
+                        markerModifier.remove(true, marker.getMarker());
                     }
                 } else {
-                    markerModifier.remove(onScreen, marker.marker);
+                    markerModifier.remove(onScreen, marker.getMarker());
                 }
             }
 
@@ -299,7 +300,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
 
         private AnimationTask(MarkerWithPosition markerWithPosition, LatLng from, LatLng to) {
             this.markerWithPosition = markerWithPosition;
-            this.marker = markerWithPosition.marker;
+            this.marker = markerWithPosition.getMarker();
             this.from = from;
             this.to = to;
         }
@@ -321,7 +322,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
                 mMarkerToCluster.remove(marker);
                 mMarkerManager.remove(marker);
             }
-            markerWithPosition.position = to;
+            markerWithPosition.setPosition(to);
         }
 
         void removeOnAnimationComplete(MarkerManager markerManager) {

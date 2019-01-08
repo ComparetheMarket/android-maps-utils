@@ -5,6 +5,7 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
+import com.google.maps.android.clustering.view.model.MarkerWithPosition;
 
 import java.util.Set;
 
@@ -14,13 +15,13 @@ import java.util.Set;
 class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier> {
     private final BaseClusterRenderer<T> clusterRenderer;
     private final Cluster<T> cluster;
-    private final Set<BaseClusterRenderer.MarkerWithPosition> newMarkers;
+    private final Set<MarkerWithPosition> newMarkers;
 
     /**
      * @param c            the cluster to render.
      * @param markersAdded a collection of markers to append any created markers.
      */
-    BaseCreateMarkersTask(BaseClusterRenderer<T> clusterRenderer, Cluster<T> c, Set<BaseClusterRenderer.MarkerWithPosition> markersAdded) {
+    BaseCreateMarkersTask(BaseClusterRenderer<T> clusterRenderer, Cluster<T> c, Set<MarkerWithPosition> markersAdded) {
         this.clusterRenderer = clusterRenderer;
         this.cluster = c;
         this.newMarkers = markersAdded;
@@ -30,7 +31,7 @@ class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier>
         markerOptions.position(position);
     }
 
-    void onMarkerCreated(M markerModifier, BaseClusterRenderer.MarkerWithPosition markerWithPosition, LatLng position) {
+    void onMarkerCreated(M markerModifier, MarkerWithPosition markerWithPosition, LatLng position) {
         // no-op
     }
 
@@ -39,7 +40,7 @@ class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier>
         if (!clusterRenderer.shouldRenderAsCluster(cluster)) {
             for (T item : cluster.getItems()) {
                 Marker marker = clusterRenderer.mMarkerCache.get(item);
-                BaseClusterRenderer.MarkerWithPosition markerWithPosition;
+                MarkerWithPosition markerWithPosition;
                 if (marker == null) {
                     MarkerOptions markerOptions = new MarkerOptions();
                     setPosition(markerOptions, item.getPosition());
@@ -57,11 +58,11 @@ class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier>
 
                     clusterRenderer.onBeforeClusterItemRendered(item, markerOptions);
                     marker = clusterRenderer.mClusterManager.getMarkerCollection().addMarker(markerOptions);
-                    markerWithPosition = new BaseClusterRenderer.MarkerWithPosition(marker);
+                    markerWithPosition = new MarkerWithPosition(marker);
                     clusterRenderer.mMarkerCache.put(item, marker);
                     onMarkerCreated(markerModifier, markerWithPosition, item.getPosition());
                 } else {
-                    markerWithPosition = new BaseClusterRenderer.MarkerWithPosition(marker);
+                    markerWithPosition = new MarkerWithPosition(marker);
                 }
                 clusterRenderer.onClusterItemRendered(item, marker);
                 newMarkers.add(markerWithPosition);
@@ -70,7 +71,7 @@ class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier>
         }
 
         Marker marker = clusterRenderer.mClusterToMarker.get(cluster);
-        BaseClusterRenderer.MarkerWithPosition markerWithPosition;
+        MarkerWithPosition markerWithPosition;
         if (marker == null) {
             MarkerOptions markerOptions = new MarkerOptions().
                     position(cluster.getPosition());
@@ -79,10 +80,10 @@ class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier>
             marker = clusterRenderer.mClusterManager.getClusterMarkerCollection().addMarker(markerOptions);
             clusterRenderer.mMarkerToCluster.put(marker, cluster);
             clusterRenderer.mClusterToMarker.put(cluster, marker);
-            markerWithPosition = new BaseClusterRenderer.MarkerWithPosition(marker);
+            markerWithPosition = new MarkerWithPosition(marker);
             onMarkerCreated(markerModifier, markerWithPosition, cluster.getPosition());
         } else {
-            markerWithPosition = new BaseClusterRenderer.MarkerWithPosition(marker);
+            markerWithPosition = new MarkerWithPosition(marker);
         }
         clusterRenderer.onClusterRendered(cluster, marker);
         newMarkers.add(markerWithPosition);
