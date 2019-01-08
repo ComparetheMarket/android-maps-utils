@@ -11,6 +11,10 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * Handles all markerWithPosition manipulations on the map. Work (such as adding, or removing a markerWithPosition)
+ * is performed while trying not to block the rest of the app's UI.
+ */
 abstract class BaseMarkerModifier<ADD_TYPE, REMOVE_TYPE> extends Handler implements MessageQueue.IdleHandler {
     private static final int BLANK = 0;
 

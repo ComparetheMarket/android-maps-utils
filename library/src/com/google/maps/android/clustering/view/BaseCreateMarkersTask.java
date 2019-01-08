@@ -8,6 +8,9 @@ import com.google.maps.android.clustering.ClusterItem;
 
 import java.util.Set;
 
+/**
+ * Creates markerWithPosition(s) for a particular cluster.
+ */
 class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier> {
     private final BaseClusterRenderer<T> clusterRenderer;
     private final Cluster<T> cluster;
@@ -28,7 +31,7 @@ class BaseCreateMarkersTask<T extends ClusterItem, M extends BaseMarkerModifier>
     }
 
     void onMarkerCreated(M markerModifier, BaseClusterRenderer.MarkerWithPosition markerWithPosition, LatLng position) {
-
+        // no-op
     }
 
     void perform(M markerModifier) {

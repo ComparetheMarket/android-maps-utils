@@ -8,6 +8,22 @@ import com.google.maps.android.clustering.ClusterItem;
 
 import java.util.Set;
 
+/**
+ * Transforms the current view (represented by FastClusterRenderer.mClusters and FastClusterRenderer.mZoom) to a
+ * new zoom level and set of clusters.
+ * <p/>
+ * This must be run off the UI thread. Work is coordinated in the RenderTask, then queued up to
+ * be executed by a MarkerModifier.
+ * <p/>
+ * There are three stages for the render:
+ * <p/>
+ * 1. Markers are added to the map
+ * <p/>
+ * 2. Any old markers are removed from the map
+ * <p/>
+ * When zooming in, markers are created out from the nearest existing cluster. When zooming
+ * out, existing clusters are moved into to the nearest new cluster.
+ */
 public abstract class BaseRenderTask<T extends ClusterItem> implements BaseClusterRenderer.RenderTask {
     private Runnable mCallback;
     private Projection mProjection;

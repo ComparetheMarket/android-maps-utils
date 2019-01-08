@@ -46,22 +46,6 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
         return new FastRenderTask(clusters);
     }
 
-    /**
-     * Transforms the current view (represented by FastClusterRenderer.mClusters and FastClusterRenderer.mZoom) to a
-     * new zoom level and set of clusters.
-     * <p/>
-     * This must be run off the UI thread. Work is coordinated in the RenderTask, then queued up to
-     * be executed by a MarkerModifier.
-     * <p/>
-     * There are three stages for the render:
-     * <p/>
-     * 1. Markers are added to the map
-     * <p/>
-     * 2. Any old markers are removed from the map
-     * <p/>
-     * When zooming in, markers are created out from the nearest existing cluster. When zooming
-     * out, existing clusters are moved into to the nearest new cluster.
-     */
     private class FastRenderTask extends BaseRenderTask<T> {
 
         private FastRenderTask(Set<? extends Cluster<T>> clusters) {
@@ -120,13 +104,8 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
         }
     }
 
-    /**
-     * Handles all markerWithPosition manipulations on the map. Work (such as adding, or removing a markerWithPosition)
-     * is performed while trying not to block the rest of the app's UI.
-     */
     @SuppressLint("HandlerLeak")
     private class MarkerModifier extends BaseMarkerModifier<List<CreateMarkersTask>, List<Marker>> {
-
         @Override
         void performNextTask() {
             if (!mOnScreenRemoveMarkersTasks.isEmpty()) {
@@ -160,15 +139,7 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
         }
     }
 
-    /**
-     * Creates markerWithPosition(s) for a particular cluster.
-     */
     private class CreateMarkersTask extends BaseCreateMarkersTask<T, MarkerModifier> {
-
-        /**
-         * @param c            the cluster to render.
-         * @param markersAdded a collection of markers to append any created markers.
-         */
         CreateMarkersTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded) {
             super(FastClusterRenderer.this, c, markersAdded);
         }

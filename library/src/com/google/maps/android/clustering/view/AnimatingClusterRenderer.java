@@ -67,24 +67,6 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
         return new AnimatingRenderTask(clusters);
     }
 
-    /**
-     * Transforms the current view (represented by FastClusterRenderer.mClusters and FastClusterRenderer.mZoom) to a
-     * new zoom level and set of clusters.
-     * <p/>
-     * This must be run off the UI thread. Work is coordinated in the RenderTask, then queued up to
-     * be executed by a MarkerModifier.
-     * <p/>
-     * There are three stages for the render:
-     * <p/>
-     * 1. Markers are added to the map
-     * <p/>
-     * 2. Markers are animated to their final position
-     * <p/>
-     * 3. Any old markers are removed from the map
-     * <p/>
-     * When zooming in, markers are animated out from the nearest existing cluster. When zooming
-     * out, existing clusters are animated to the nearest new cluster.
-     */
     private class AnimatingRenderTask extends BaseRenderTask<T> {
         private SphericalMercatorProjection mSphericalMercatorProjection;
         private float mMapZoom;
@@ -114,7 +96,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
             // markers to animate from.
             List<Point> existingClustersOnScreen = null;
             if (AnimatingClusterRenderer.this.mClusters != null && SHOULD_ANIMATE) {
-                existingClustersOnScreen = new ArrayList<Point>();
+                existingClustersOnScreen = new ArrayList<>();
                 for (Cluster<T> c : AnimatingClusterRenderer.this.mClusters) {
                     if (shouldRenderAsCluster(c) && visibleBounds.contains(c.getPosition())) {
                         Point point = mSphericalMercatorProjection.toPoint(c.getPosition());
@@ -153,7 +135,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
             // markers to animate from.
             List<Point> newClustersOnScreen = null;
             if (SHOULD_ANIMATE) {
-                newClustersOnScreen = new ArrayList<Point>();
+                newClustersOnScreen = new ArrayList<>();
                 for (Cluster<T> c : clusters) {
                     if (shouldRenderAsCluster(c) && visibleBounds.contains(c.getPosition())) {
                         Point p = mSphericalMercatorProjection.toPoint(c.getPosition());
@@ -211,23 +193,11 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
         return closest;
     }
 
-    /**
-     * Handles all markerWithPosition manipulations on the map. Work (such as adding, removing, or
-     * animating a markerWithPosition) is performed while trying not to block the rest of the app's
-     * UI.
-     */
     @SuppressLint("HandlerLeak")
     private class MarkerModifier extends BaseMarkerModifier<CreateMarkerTask, Marker> {
-        private Queue<AnimationTask> mAnimationTasks = new LinkedList<AnimationTask>();
+        private Queue<AnimationTask> mAnimationTasks = new LinkedList<>();
 
-        /**
-         * Animates a markerWithPosition some time in the future.
-         *
-         * @param marker the markerWithPosition to animate.
-         * @param from   the position to animate from.
-         * @param to     the position to animate to.
-         */
-        public void animate(MarkerWithPosition marker, LatLng from, LatLng to) {
+        void animate(MarkerWithPosition marker, LatLng from, LatLng to) {
             lock.lock();
             mAnimationTasks.add(new AnimationTask(marker, from, to));
             lock.unlock();
@@ -242,7 +212,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
          * @param to     the position to animate to.
          */
         @TargetApi(Build.VERSION_CODES.HONEYCOMB)
-        public void animateThenRemove(MarkerWithPosition marker, LatLng from, LatLng to) {
+        void animateThenRemove(MarkerWithPosition marker, LatLng from, LatLng to) {
             lock.lock();
             AnimationTask animationTask = new AnimationTask(marker, from, to);
             animationTask.removeOnAnimationComplete(mClusterManager.getMarkerManager());
@@ -291,18 +261,9 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
         }
     }
 
-    /**
-     * Creates markerWithPosition(s) for a particular cluster, animating it if necessary.
-     */
     private class CreateMarkerTask extends BaseCreateMarkersTask<T, MarkerModifier> {
         private final LatLng animateFrom;
 
-        /**
-         * @param c            the cluster to render.
-         * @param markersAdded a collection of markers to append any created markers.
-         * @param animateFrom  the location to animate the markerWithPosition from, or null if no
-         *                     animation is required.
-         */
         CreateMarkerTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded, LatLng animateFrom) {
             super(AnimatingClusterRenderer.this, c, markersAdded);
             this.animateFrom = animateFrom;
@@ -327,10 +288,6 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
 
     private static final TimeInterpolator ANIMATION_INTERP = new DecelerateInterpolator();
 
-    /**
-     * Animates a markerWithPosition from one position to another. TODO: improve performance for
-     * slow devices (e.g. Nexus S).
-     */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
     private class AnimationTask extends AnimatorListenerAdapter implements ValueAnimator.AnimatorUpdateListener {
         private final MarkerWithPosition markerWithPosition;
@@ -347,7 +304,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
             this.to = to;
         }
 
-        public void perform() {
+        void perform() {
             ValueAnimator valueAnimator = ValueAnimator.ofFloat(0.0f, 1.0f);
             valueAnimator.setInterpolator(ANIMATION_INTERP);
             valueAnimator.addUpdateListener(this);
@@ -367,7 +324,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
             markerWithPosition.position = to;
         }
 
-        public void removeOnAnimationComplete(MarkerManager markerManager) {
+        void removeOnAnimationComplete(MarkerManager markerManager) {
             mMarkerManager = markerManager;
             mRemoveOnComplete = true;
         }
