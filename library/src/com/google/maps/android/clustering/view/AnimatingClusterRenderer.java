@@ -294,9 +294,7 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
     /**
      * Creates markerWithPosition(s) for a particular cluster, animating it if necessary.
      */
-    private class CreateMarkerTask {
-        private final Cluster<T> cluster;
-        private final Set<MarkerWithPosition> newMarkers;
+    private class CreateMarkerTask extends BaseCreateMarkersTask<T, MarkerModifier> {
         private final LatLng animateFrom;
 
         /**
@@ -305,67 +303,25 @@ public class AnimatingClusterRenderer<T extends ClusterItem> extends BaseCluster
          * @param animateFrom  the location to animate the markerWithPosition from, or null if no
          *                     animation is required.
          */
-        public CreateMarkerTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded, LatLng animateFrom) {
-            this.cluster = c;
-            this.newMarkers = markersAdded;
+        CreateMarkerTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded, LatLng animateFrom) {
+            super(AnimatingClusterRenderer.this, c, markersAdded);
             this.animateFrom = animateFrom;
         }
 
-        private void perform(MarkerModifier markerModifier) {
-            // Don't show small clusters. Render the markers inside, instead.
-            if (!shouldRenderAsCluster(cluster)) {
-                for (T item : cluster.getItems()) {
-                    Marker marker = mMarkerCache.get(item);
-                    MarkerWithPosition markerWithPosition;
-                    if (marker == null) {
-                        MarkerOptions markerOptions = new MarkerOptions();
-                        if (animateFrom != null) {
-                            markerOptions.position(animateFrom);
-                        } else {
-                            markerOptions.position(item.getPosition());
-                        }
-                        if (!(item.getTitle() == null) && !(item.getSnippet() == null)) {
-                            markerOptions.title(item.getTitle());
-                            markerOptions.snippet(item.getSnippet());
-                        } else if (!(item.getSnippet() == null)) {
-                            markerOptions.title(item.getSnippet());
-                        } else if (!(item.getTitle() == null)) {
-                            markerOptions.title(item.getTitle());
-                        }
-                        onBeforeClusterItemRendered(item, markerOptions);
-                        marker = mClusterManager.getMarkerCollection().addMarker(markerOptions);
-                        markerWithPosition = new MarkerWithPosition(marker);
-                        mMarkerCache.put(item, marker);
-                        if (animateFrom != null) {
-                            markerModifier.animate(markerWithPosition, animateFrom, item.getPosition());
-                        }
-                    } else {
-                        markerWithPosition = new MarkerWithPosition(marker);
-                    }
-                    onClusterItemRendered(item, marker);
-                    newMarkers.add(markerWithPosition);
-                }
-                return;
-            }
-
-            Marker marker = mClusterToMarker.get(cluster);
-            MarkerWithPosition markerWithPosition;
-            if (marker == null) {
-                MarkerOptions markerOptions = new MarkerOptions().
-                        position(animateFrom == null ? cluster.getPosition() : animateFrom);
-                onBeforeClusterRendered(cluster, markerOptions);
-                marker = mClusterManager.getClusterMarkerCollection().addMarker(markerOptions);
-                mMarkerToCluster.put(marker, cluster);
-                mClusterToMarker.put(cluster, marker);
-                markerWithPosition = new MarkerWithPosition(marker);
-                if (animateFrom != null) {
-                    markerModifier.animate(markerWithPosition, animateFrom, cluster.getPosition());
-                }
+        @Override
+        void setPosition(MarkerOptions markerOptions, LatLng position) {
+            if (animateFrom != null) {
+                markerOptions.position(animateFrom);
             } else {
-                markerWithPosition = new MarkerWithPosition(marker);
+                markerOptions.position(position);
             }
-            onClusterRendered(cluster, marker);
-            newMarkers.add(markerWithPosition);
+        }
+
+        @Override
+        void onMarkerCreated(MarkerModifier markerModifier, MarkerWithPosition markerWithPosition, LatLng position) {
+            if (animateFrom != null) {
+                markerModifier.animate(markerWithPosition, animateFrom, position);
+            }
         }
     }
 

@@ -18,27 +18,19 @@ package com.google.maps.android.clustering.view;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.Looper;
-import android.os.Message;
 
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterItem;
 import com.google.maps.android.clustering.ClusterManager;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The default view for a ClusterManager.
@@ -153,7 +145,7 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
 
         private void addMarkers(List<CreateMarkersTask> createMarkersTaskList) {
             for (CreateMarkersTask task : createMarkersTaskList) {
-                task.perform();
+                task.perform(this);
             }
         }
 
@@ -171,64 +163,14 @@ public class FastClusterRenderer<T extends ClusterItem> extends BaseClusterRende
     /**
      * Creates markerWithPosition(s) for a particular cluster.
      */
-    private class CreateMarkersTask {
-        private final Cluster<T> cluster;
-        private final Set<MarkerWithPosition> newMarkers;
+    private class CreateMarkersTask extends BaseCreateMarkersTask<T, MarkerModifier> {
 
         /**
          * @param c            the cluster to render.
          * @param markersAdded a collection of markers to append any created markers.
          */
-        public CreateMarkersTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded) {
-            this.cluster = c;
-            this.newMarkers = markersAdded;
-        }
-
-        private void perform() {
-            // Don't show small clusters. Render the markers inside, instead.
-            if (!shouldRenderAsCluster(cluster)) {
-                for (T item : cluster.getItems()) {
-                    Marker marker = mMarkerCache.get(item);
-                    MarkerWithPosition markerWithPosition;
-                    if (marker == null) {
-                        MarkerOptions markerOptions = new MarkerOptions();
-                        markerOptions.position(item.getPosition());
-                        if (!(item.getTitle() == null) && !(item.getSnippet() == null)) {
-                            markerOptions.title(item.getTitle());
-                            markerOptions.snippet(item.getSnippet());
-                        } else if (!(item.getSnippet() == null)) {
-                            markerOptions.title(item.getSnippet());
-                        } else if (!(item.getTitle() == null)) {
-                            markerOptions.title(item.getTitle());
-                        }
-                        onBeforeClusterItemRendered(item, markerOptions);
-                        marker = mClusterManager.getMarkerCollection().addMarker(markerOptions);
-                        markerWithPosition = new MarkerWithPosition(marker);
-                        mMarkerCache.put(item, marker);
-                    } else {
-                        markerWithPosition = new MarkerWithPosition(marker);
-                    }
-                    onClusterItemRendered(item, marker);
-                    newMarkers.add(markerWithPosition);
-                }
-                return;
-            }
-
-            Marker marker = mClusterToMarker.get(cluster);
-            MarkerWithPosition markerWithPosition;
-            if (marker == null) {
-                MarkerOptions markerOptions = new MarkerOptions().
-                        position(cluster.getPosition());
-                onBeforeClusterRendered(cluster, markerOptions);
-                marker = mClusterManager.getClusterMarkerCollection().addMarker(markerOptions);
-                mMarkerToCluster.put(marker, cluster);
-                mClusterToMarker.put(cluster, marker);
-                markerWithPosition = new MarkerWithPosition(marker);
-            } else {
-                markerWithPosition = new MarkerWithPosition(marker);
-            }
-            onClusterRendered(cluster, marker);
-            newMarkers.add(markerWithPosition);
+        CreateMarkersTask(Cluster<T> c, Set<MarkerWithPosition> markersAdded) {
+            super(FastClusterRenderer.this, c, markersAdded);
         }
     }
 }
