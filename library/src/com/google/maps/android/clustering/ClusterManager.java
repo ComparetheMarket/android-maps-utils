@@ -30,7 +30,7 @@ import com.google.maps.android.clustering.algo.PreCachingAlgorithmDecorator;
 import com.google.maps.android.clustering.algo.ScreenBasedAlgorithm;
 import com.google.maps.android.clustering.algo.ScreenBasedAlgorithmAdapter;
 import com.google.maps.android.clustering.view.ClusterRenderer;
-import com.google.maps.android.clustering.view.DefaultClusterRenderer;
+import com.google.maps.android.clustering.view.FastClusterRenderer;
 
 import java.util.Collection;
 import java.util.Set;
@@ -75,7 +75,7 @@ public class ClusterManager<T extends ClusterItem> implements
         mMarkerManager = markerManager;
         mClusterMarkers = markerManager.newCollection();
         mMarkers = markerManager.newCollection();
-        mRenderer = new DefaultClusterRenderer<T>(context, map, this);
+        mRenderer = new FastClusterRenderer<T>(context, map, this);
         mAlgorithm = new ScreenBasedAlgorithmAdapter<T>(new PreCachingAlgorithmDecorator<T>(
                 new NonHierarchicalDistanceBasedAlgorithm<T>()));
 
@@ -135,10 +135,6 @@ public class ClusterManager<T extends ClusterItem> implements
         }
 
         cluster();
-    }
-
-    public void setAnimation(boolean animate) {
-        mRenderer.setAnimation(animate);
     }
 
     public ClusterRenderer<T> getRenderer() {

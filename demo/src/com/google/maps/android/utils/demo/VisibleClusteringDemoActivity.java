@@ -23,6 +23,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.clustering.ClusterManager;
 import com.google.maps.android.clustering.algo.NonHierarchicalViewBasedAlgorithm;
+import com.google.maps.android.clustering.view.AnimatingClusterRenderer;
 import com.google.maps.android.utils.demo.model.MyItem;
 
 import org.json.JSONException;
@@ -40,7 +41,11 @@ public class VisibleClusteringDemoActivity extends BaseDemoActivity {
 
         getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(51.503186, -0.126446), 10));
 
+        boolean useAnimation = getIntent().getBooleanExtra("use-animation", false);
         mClusterManager = new ClusterManager<MyItem>(this, getMap());
+        if (useAnimation) {
+            mClusterManager.setRenderer(new AnimatingClusterRenderer<>(this, getMap(), mClusterManager));
+        }
         mClusterManager.setAlgorithm(new NonHierarchicalViewBasedAlgorithm<MyItem>(
                 metrics.widthPixels, metrics.heightPixels));
 

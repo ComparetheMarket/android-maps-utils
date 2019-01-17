@@ -42,11 +42,6 @@ public interface ClusterRenderer<T extends ClusterItem> {
     void setOnClusterItemInfoWindowClickListener(ClusterManager.OnClusterItemInfoWindowClickListener<T> listener);
 
     /**
-     * Called to set animation on or off
-     */
-    void setAnimation(boolean animate);
-
-    /**
      * Called when the view is added.
      */
     void onAdd();
