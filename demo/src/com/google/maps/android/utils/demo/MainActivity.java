@@ -19,11 +19,12 @@ package com.google.maps.android.utils.demo;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.Nullable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-public class MainActivity extends Activity implements View.OnClickListener {
+public class MainActivity extends Activity {
     private ViewGroup mListView;
 
     //Comment to see if I can push to the repository
@@ -35,10 +36,15 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
         mListView = (ViewGroup) findViewById(R.id.list);
 
+        Bundle showAnimationBundle = new Bundle();
+        showAnimationBundle.putBoolean("use-animation", true);
+
         addDemo("Clustering", ClusteringDemoActivity.class);
         addDemo("Clustering: Custom Look", CustomMarkerClusteringDemoActivity.class);
-        addDemo("Clustering: 2K markers", BigClusteringDemoActivity.class);
-        addDemo("Clustering: 20k only visible markers", VisibleClusteringDemoActivity.class);
+        addDemo("Clustering: 2K markers (animation)", BigClusteringDemoActivity.class, showAnimationBundle);
+        addDemo("Clustering: 2K markers (no-animation)", BigClusteringDemoActivity.class);
+        addDemo("Clustering: 20k only visible markers (animation)", VisibleClusteringDemoActivity.class, showAnimationBundle);
+        addDemo("Clustering: 20k only visible markers (no-animation)", VisibleClusteringDemoActivity.class);
         addDemo("PolyUtil.decode", PolyDecodeDemoActivity.class);
         addDemo("PolyUtil.simplify", PolySimplifyDemoActivity.class);
         addDemo("IconGenerator", IconGeneratorDemoActivity.class);
@@ -50,19 +56,25 @@ public class MainActivity extends Activity implements View.OnClickListener {
         addDemo("KML Layer Overlay", KmlDemoActivity.class);
     }
 
-    private void addDemo(String demoName, Class<? extends Activity> activityClass) {
+    private void addDemo(String demoName, final Class<? extends Activity> activityClass) {
+        addDemo(demoName, activityClass, null);
+    }
+
+    private void addDemo(String demoName, final Class<? extends Activity> activityClass, @Nullable final Bundle extras) {
         Button b = new Button(this);
         ViewGroup.LayoutParams layoutParams = new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         b.setLayoutParams(layoutParams);
         b.setText(demoName);
-        b.setTag(activityClass);
-        b.setOnClickListener(this);
+        b.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, activityClass);
+                if (extras != null) {
+                    intent.putExtras(extras);
+                }
+                startActivity(intent);
+            }
+        });
         mListView.addView(b);
-    }
-
-    @Override
-    public void onClick(View view) {
-        Class activityClass = (Class) view.getTag();
-        startActivity(new Intent(this, activityClass));
     }
 }

@@ -26,6 +26,7 @@ import android.widget.Toast;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.AnimatingClusterRenderer;
 import com.google.maps.android.utils.demo.model.MyItem;
 
 public class BigClusteringDemoActivity extends BaseDemoActivity {
@@ -35,7 +36,11 @@ public class BigClusteringDemoActivity extends BaseDemoActivity {
     protected void startDemo() {
         getMap().moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(51.503186, -0.126446), 10));
 
+        boolean useAnimation = getIntent().getBooleanExtra("use-animation", false);
         mClusterManager = new ClusterManager<MyItem>(this, getMap());
+        if (useAnimation) {
+            mClusterManager.setRenderer(new AnimatingClusterRenderer<>(this, getMap(), mClusterManager));
+        }
 
         getMap().setOnCameraIdleListener(mClusterManager);
         try {
